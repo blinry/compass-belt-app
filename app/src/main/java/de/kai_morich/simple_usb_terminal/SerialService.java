@@ -19,11 +19,18 @@ import androidx.core.app.NotificationCompat;
 import java.io.IOException;
 import java.util.ArrayDeque;
 
+import android.hardware.SensorEventListener;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
+import android.hardware.SensorEvent;
+import android.content.Context;
+import com.hoho.android.usbserial.driver.SerialTimeoutException;
+
 /**
  * create notification and queue serial data while activity is not in the foreground
  * use listener chain: SerialSocket -> SerialService -> UI fragment
  */
-public class SerialService extends Service implements SerialListener {
+public class SerialService extends Service implements SerialListener, SensorEventListener {
 
     class SerialBinder extends Binder {
         SerialService getService() { return SerialService.this; }
@@ -52,6 +59,9 @@ public class SerialService extends Service implements SerialListener {
     private SerialSocket socket;
     private SerialListener listener;
     private boolean connected;
+
+    private SensorManager sensorManager;
+    private Sensor sensor;
 
     /**
      * Lifecylce
@@ -276,4 +286,37 @@ public class SerialService extends Service implements SerialListener {
         }
     }
 
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        sensorManager.registerListener(this, sensor, 1000000);
+        return Service.START_NOT_STICKY;
+    }
+
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+            float[] rotationMatrix = new float[9];
+            SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+
+            float[] orientation = new float[3];
+            SensorManager.getOrientation(rotationMatrix, orientation);
+
+            float azimuth = orientation[0]; // Angle between screen's "up" axis and north pole.
+            float pitch = orientation[1]; // Angle between screen's "up-down" axis and the ground.
+            float roll = orientation[2]; // Angle between screen's "left-right" axis and the ground.
+
+            double angle = azimuth/(2*Math.PI); // Angle for compass belt, between 0 and 1.
+            angle = ((angle % 1) + 1) % 1; // Take modulus of 1.
+
+            try {
+                write((Double.toString(angle) + "\r\n").getBytes());
+            } catch (Exception e) {
+                // meh
+            }
+        }
+    }
+
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // idc :D
+    }
 }
