@@ -305,8 +305,8 @@ public class SerialService extends Service implements SerialListener, SensorEven
             float pitch = orientation[1]; // Angle between screen's "up-down" axis and the ground.
             float roll = orientation[2]; // Angle between screen's "left-right" axis and the ground.
 
-            double angle = azimuth/(2*Math.PI); // Angle for compass belt, between 0 and 1.
-            angle = ((angle % 1) + 1) % 1; // Take modulus of 1.
+            double angle = -azimuth/(2*Math.PI); // Angle for compass belt.
+            angle = ((angle % 1) + 1) % 1; // Take modulus so that result is between 0 and 1.
 
             try {
                 write((Double.toString(angle) + "\r\n").getBytes());
