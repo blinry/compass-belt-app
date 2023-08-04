@@ -2,6 +2,8 @@
 
 # SimpleUsbTerminal
 
+**Modified by blinry to send instructions to a compass belt.**
+
 This Android app provides a line-oriented terminal / console for devices with a serial / UART interface connected with a USB-to-serial-converter.
 
 It supports USB to serial converters based on
